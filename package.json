@@ -1,0 +1,31 @@
+{
+  "name": "humandiff",
+  "version": "0.0.1",
+  "description": "\"Diff to human-readable differences file\"",
+  "main": "index.js",
+  "bin": {
+    "xs2jiter": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitifet/humandiff.git"
+  },
+  "keywords": [
+    "diff",
+    "human-readable",
+    "conflict-resolving"
+  ],
+  "author": "Joan Miquel Torres <jmtorres@112ib.com>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/bitifet/humandiff/issues"
+  },
+  "homepage": "https://github.com/bitifet/humandiff#readme",
+  "dependencies": {
+    "commander": "^2.11.0",
+    "diff": "^3.3.1"
+  }
+}
