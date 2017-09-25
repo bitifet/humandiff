@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 "use strict";
 
-var Program = require('commander');
-var Fs = require("fs");
-var StrDiff = require("diff").createTwoFilesPatch;
-var Pkg = JSON.parse(Fs.readFileSync(__dirname + "/package.json").toString());
-var mainRun = false;
+const Program = require('commander');
+const Fs = require("fs");
+const StrDiff = require("diff").createTwoFilesPatch;
+const Pkg = JSON.parse(Fs.readFileSync(__dirname + "/package.json").toString());
+
+const ____topRuler____ = "<<<<<<<<";
+const ____medRuler____ = "========";
+const ____botRuler____ = ">>>>>>>>";
+
+
+let mainRun = false;
 
 function exitError(msg) { // Simple error message and exit helper.//{{{
     console.error(msg);
@@ -31,8 +37,8 @@ function loadFiles(files, labels) {//{{{
 
 function tokenDiff(f1, f2) {//{{{
 
-    var tok = [], ti = -1; // Tokens, index.
-    var diff = StrDiff(
+    let tok = [], ti = -1; // Tokens, index.
+    let diff = StrDiff(
         ""
         , ""
         , f1.data
@@ -106,10 +112,10 @@ function main(file1, file2, file1Label, file2Label, cmd){
 
     mainRun = true; // Flag.
 
-    var files = loadFiles([file1, file2], [file1Label, file2Label]);
+    const files = loadFiles([file1, file2], [file1Label, file2Label]);
 
-    var master = files[0].data.split("\n");
-    var tokens = tokenDiff(files[0], files[1]) // Get diff tokens.
+    const master = files[0].data.split("\n");
+    const tokens = tokenDiff(files[0], files[1]) // Get diff tokens.
         .concat([{}]) // Add empty token as "graceful" end-of-list mark.
     ;
     let ti = 0, t = tokens[ti];
@@ -118,15 +124,15 @@ function main(file1, file2, file1Label, file2Label, cmd){
 
         if (mi == t.ostart) {
 
-            console.log ("<<<<<<<< " + files[0].label);
+            console.log (____topRuler____ + " " + files[0].label);
             for (let oi=0; oi<t.old.length; oi++) {
                 console.log(t.old[oi]);
             };
-            console.log ("======== ");
+            console.log (____medRuler____);
             for (let ni=0; ni<t.new.length; ni++) {
                 console.log(t.new[ni]);
             };
-            console.log (">>>>>>>> " + files[1].label);
+            console.log (____botRuler____ + " " + files[1].label);
 
             mi += t.old.length -1; // Bypass in master but fix next loop increment.
             t = tokens[++ti];
