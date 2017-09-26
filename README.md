@@ -28,9 +28,19 @@ Usage
 
     Options:
 
-      -V, --version  output the version number
-      -h, --help     output usage information
+      -V, --version                      output the version number
+      -o, --acceptOld <cfgOptions_list>  Comma-separated list of options to automatically accept old version
+      -n, --acceptNew <cfgOptions_list>  Comma-separated list of options to automatically accept new version
+      -h, --help                         output usage information
 
+    Advanced features:
+
+      Automated resolution:
+          Given any differnce section, if it consists in single row both sides
+          and both consists in parameter definiton of the form 'varName = xxxx'.
+          If varName matches and is present on --acceptOld or --acceptNew list
+          proper version is automatically selected (printed) and no conflict block
+          is rendered.
 
 
 Output example

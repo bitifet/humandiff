@@ -123,11 +123,28 @@ function buildMaster(fileContents) {//{{{
 Program
   .version(Pkg.version)
     .arguments('<file1> <file2> [fileLabel1] [fileLabel2]')
+    .option('-o, --acceptOld <cfgOptions_list>', 'Comma-separated list of options to automatically accept old version')
+    .option('-n, --acceptNew <cfgOptions_list>', 'Comma-separated list of options to automatically accept new version')
     .description([
         'Human readable "diff" tool with no data loss.',
         'Differenced sections are labeled with fileLabel1 and fileLabel2 if provided.',
         'File path is used otherwise.',
     ].join("\n\n    "))
+    .on('--help', function(){
+        const tab = "\n  ";
+        console.log(tab+[
+            "Advanced features:",
+            "",
+            "  Automated resolution:",
+            "      Given any differnce section, if it consists in single row both sides",
+            "      and both consists in parameter definiton of the form 'varName = xxxx'.",
+            "      If varName matches and is present on --acceptOld or --acceptNew list",
+            "      proper version is automatically selected (printed) and no conflict block",
+            "      is rendered.",
+            "",
+        ].join(tab));
+
+    })
     .action(main)
 ;
 Program.parse(process.argv);
@@ -138,6 +155,21 @@ Program.parse(process.argv);
 function main(file1, file2, file1Label, file2Label, cmd){
 
     mainRun = true; // Flag.
+
+    // Build acceptList index:
+    // -----------------------
+    var acceptList = {
+        Old: {},
+        New: {},
+    };
+    ["Old", "New"].map(function(brand){
+        (cmd["accept"+brand] || "")
+            .split(/\s*,\s*/)
+            .filter(x=>x)
+            .map(x=>acceptList[brand][x]=true)
+        ;
+    });
+    // -----------------------
 
     const files = loadFiles([file1, file2], [file1Label, file2Label]);
 
@@ -151,6 +183,32 @@ function main(file1, file2, file1Label, file2Label, cmd){
 
         if (mi == t.ostart) {
 
+            // Perform --acceptOld and --acceptNew automations:
+            // ------------------------------------------------
+            if (
+                (t.old.length == 1)
+                && (t.new.length == 1)
+            ) {
+                let oldVar = (t.old[0].match(/^\s*(\w+)\s*=/) || [])[1];
+                let newVar = (t.new[0].match(/^\s*(\w+)\s*=/) || [])[1];
+
+                if (oldVar && oldVar == newVar) {
+                    if (acceptList.Old[oldVar]) {
+                        console.log(t.old[0]);
+                        t = tokens[++ti];
+                        continue;
+                    } else if (acceptList.New[newVar]) {
+                        console.log(t.new[0]);
+                        t = tokens[++ti];
+                        continue;
+                    };
+                };
+            };
+            // ------------------------------------------------
+
+
+            // Actual differences block renderization:
+            // ---------------------------------------
             console.log (____topRuler____ + " " + files[0].label);
             for (let oi=0; oi<t.old.length; oi++) {
                 console.log(t.old[oi]);
@@ -167,6 +225,7 @@ function main(file1, file2, file1Label, file2Label, cmd){
             t = tokens[++ti];
             // NOTE: When final empty token is reached t.ostart = undefined.
             //   ...So (mi == t.ostart) condition will evaluate false from then on.
+            // ---------------------------------------
 
         } else {
             console.log(master[mi]);
