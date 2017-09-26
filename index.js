@@ -87,7 +87,34 @@ function tokenDiff(f1, f2) {//{{{
         if (ti<0 && diff.length) exitError("Missing starting token header");
     };
 
+    // Detect last row trailing newline difference:
+    // (This is detected by StrDiff() but indistinguishable in its output)
+    const trailMsg = "No trailing newline";
+    let f1_trailing_nl = (f1.data[f1.data.length -1] == "\n");
+    let f2_trailing_nl = (f2.data[f2.data.length -1] == "\n");
+    if (f1_trailing_nl && ! f2_trailing_nl) tok[ti].nmeta = trailMsg;
+    if (f2_trailing_nl && ! f1_trailing_nl) tok[ti].ometa = trailMsg;
+
     return tok;
+
+};//}}}
+
+function buildMaster(fileContents) {//{{{
+
+    // Avoid trailing newline character to generate fake extra row.
+    let least = fileContents.length -1;
+    if (fileContents[least] == "\n") fileContents = fileContents.substring(0, least);
+
+    // Return array of rows.
+    return fileContents.split("\n");
+
+    // NOTE: All rows in text file are supposed to end in newline character even it is
+    //       not included.
+    //       But for last row this can be not true. If that happen just in one
+    //       of the input files it will be detected as a difference (and
+    //       corresponding token get generated). But its text representation
+    //       will be identical except for an extra 'ometa' property warning of
+    //       that situation.
 
 };//}}}
 
@@ -114,7 +141,7 @@ function main(file1, file2, file1Label, file2Label, cmd){
 
     const files = loadFiles([file1, file2], [file1Label, file2Label]);
 
-    const master = files[0].data.split("\n");
+    const master = buildMaster(files[0].data);
     const tokens = tokenDiff(files[0], files[1]) // Get diff tokens.
         .concat([{}]) // Add empty token as "graceful" end-of-list mark.
     ;
@@ -128,10 +155,12 @@ function main(file1, file2, file1Label, file2Label, cmd){
             for (let oi=0; oi<t.old.length; oi++) {
                 console.log(t.old[oi]);
             };
+            if (t.ometa) console.log ("\\ " + t.ometa);
             console.log (____medRuler____);
             for (let ni=0; ni<t.new.length; ni++) {
                 console.log(t.new[ni]);
             };
+            if (t.nmeta) console.log ("\\ " + t.nmeta);
             console.log (____botRuler____ + " " + files[1].label);
 
             mi += t.old.length -1; // Bypass in master but fix next loop increment.
