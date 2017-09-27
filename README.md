@@ -17,11 +17,11 @@ Installation
 Usage
 -----
 
-    Usage: humandiff [options] <file1> <file2> [fileLabel1] [fileLabel2]
+    Usage: index [options] <oldFile> <newFile> [oldFileLabel] [newFileLabel]
 
     Human readable "diff" tool with no data loss.
 
-      Differenced sections are labeled with fileLabel1 and fileLabel2 if provided.
+      Differenced sections are labeled with oldFileLabel and newFileLabel if provided.
 
       File path is used otherwise.
 
@@ -31,6 +31,7 @@ Usage
       -V, --version                      output the version number
       -o, --acceptOld <cfgOptions_list>  Comma-separated list of options to automatically accept old version
       -n, --acceptNew <cfgOptions_list>  Comma-separated list of options to automatically accept new version
+      -i, --ignoreCase                   Perform case-insensitive comparsion
       -h, --help                         output usage information
 
     Advanced features:
@@ -41,6 +42,15 @@ Usage
           If varName matches and is present on --acceptOld or --acceptNew list
           proper version is automatically selected (printed) and no conflict block
           is rendered.
+
+      Case insensitive comparsion:
+          if --ignoreCase option (or -i) option is used, case-insensitive
+          comparsion is performed. In this mode, varNames in --acceptOld and
+          --acceptNew are threaten in case insensitive manner so, for example
+          "someoption" and "SomeOption" property names are considered the same
+          and thus selected version is picked (in its original case). In case of
+          rows with no other difference than upper/lower-case letters, oldFile
+          verison is used
 
 
 Output example

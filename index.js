@@ -6,16 +6,27 @@ const Fs = require("fs");
 const StrDiff = require("diff").createTwoFilesPatch;
 const Pkg = JSON.parse(Fs.readFileSync(__dirname + "/package.json").toString());
 
+
 const ____topRuler____ = "<<<<<<<<";
 const ____medRuler____ = "========";
 const ____botRuler____ = ">>>>>>>>";
 
 
 let mainRun = false;
+const __options__ = {
+    ignoreCase: false, // FIXME: Make it optional (by parameter).
+};
 
 function exitError(msg) { // Simple error message and exit helper.//{{{
-    console.error(msg);
+    console.error("ERROR: " + msg);
     process.exit(1);
+};//}}}
+
+function sideRender(sideRows) { // Simple token-side rows render helper.//{{{
+    for (let i=0; i<sideRows.length; i++) {
+        console.log(sideRows[i]);
+    };
+    return true; // Success.
 };//}}}
 
 function loadFiles(files, labels) {//{{{
@@ -45,7 +56,10 @@ function tokenDiff(f1, f2) {//{{{
         , f2.data
         , ""
         , ""
-        , {context: 0}
+        , {
+            context: 0,
+            ignoreCase: __options__.ignoreCase,
+        }
     )
     .split("\n")
     .slice(4)
@@ -65,7 +79,9 @@ function tokenDiff(f1, f2) {//{{{
                 if (!h) exitError("Wrong header format for token "+(++ti));
 
                 // New token:
-                tok[++ti] = {
+                ti++;
+                tok[ti] = {
+                    i: ti, // FIXME!! Check if it is finally needed.
                     // header: { // (Verbose approach)
                     //     oldStart: Number(h[1] - 1),
                     //     // oldLength: Number(h[1], // Same as tok[ti].old.lengh
@@ -95,7 +111,29 @@ function tokenDiff(f1, f2) {//{{{
     if (f1_trailing_nl && ! f2_trailing_nl) tok[ti].nmeta = trailMsg;
     if (f2_trailing_nl && ! f1_trailing_nl) tok[ti].ometa = trailMsg;
 
-    return tok;
+    return tok.map(function propertyDetection(t){
+
+            // Capture property name on sides having single meaningful row:
+            ["old", "new"].map(function(brand){
+
+                // Get meaningful rows:
+                let mrowsArr = t[brand].filter(x=>x.trim().length);
+
+                // Annotate meaningful rows count:
+                t[brand+"mrows"] = mrowsArr.length;
+
+                // oldProp / newProp property names:
+                let propName = ((mrowsArr[0] || "").match(/^\s*(\w+)\s*=/) || [])[1];
+                if (propName && __options__.ignoreCase) propName = propName.toLowerCase();
+                t[brand+"Prop"] = (t[brand+"mrows"] == 1)
+                    ? propName
+                    : undefined
+                ;
+            });
+
+            return t;
+
+    });
 
 };//}}}
 
@@ -118,16 +156,109 @@ function buildMaster(fileContents) {//{{{
 
 };//}}}
 
+function matchProps(cmd, tokens) {//{{{
+
+    // Build acceptList index:
+    // -----------------------
+    var acceptList = {
+        old: {},
+        new: {},
+    };
+    ["old", "new"].map(function(brand){
+        let bKey = "accept" // acceptOld / acceptNew
+            +brand[0].toUpperCase()
+            +brand.substring(1)
+        ;
+        (cmd[bKey] || "")
+            .split(/\s*,\s*/)
+            .filter(x=>x)
+            .map(function(propName){
+                if (__options__.ignoreCase) propName = propName.toLowerCase();
+                acceptList[brand][propName]=true;
+                if (brand == "new") { // old already fully filled.
+                    // Check for repetitions.
+                    if (acceptList.old[propName]) exitError (
+                        "\""+propName+"\" property name present in both --acceptOld and --acceptNew lists."
+                    );
+                };
+            })
+        ;
+    });
+
+    // Convert to arrays after classify/check:
+    acceptList.old = Object.keys(acceptList.old);
+    acceptList.new = Object.keys(acceptList.new);
+
+    [
+        [ "old", "new" ],
+        [ "new", "old" ],
+    ]
+    .map(function([ brand, counterbrand ]){
+
+        // Check brand against counterbrand.
+        acceptList[brand].map(function(propName){
+
+            if (__options__.ignoreCase) propName = propName.toLowerCase();
+
+            let bProp = brand+"Prop";
+            let cProp = counterbrand+"Prop";
+            let bmrows = brand+"mrows";
+            let cmrows = counterbrand+"mrows";
+
+            // Pick matching tokens both sides (brand / counterbrand):
+            let bts = tokens.filter(t=>t[bProp]==propName);
+            let cts = tokens.filter(t=>t[cProp]==propName);
+            let bt = bts[0];
+            let ct = cts[0];
+
+            if (bts.length == 1) { // Single (brand side) match.
+
+                if ( // Property is added (new side) or removed (old side).
+                    cts.length == 0 // No counterpart match.
+                    && bt[bmrows] // Counterpart side is empty.
+                ) {
+                    bt.selected = brand;
+                }
+                else if ( // Property is modified (even if moved)
+                    cts.length == 1 // Single couterpart match.
+                ) {
+                    if (bt.i == ct.i) { // Same token.
+                        bt.selected = brand; // Mark as selected.
+                    } else if (
+                        // (distinct token)
+                        bt[cmrows] == 0 // No meaningful data in brand token counterbrand part.
+                        && ct[bmrows] == 0 // No meaningful data in counterbrand token brand part.
+                    ) {
+                        bt.selected = brand; // Actual version.
+                        ct.selected = brand; // Empty version.
+                    }
+                };
+            } else if (
+                bts.length == 0 // No brand side match.
+                && cts.length == 1 // Single counterpart match.
+                && ct[cmrows] // Counterpart brand side is empty.
+            ) {
+                ct.selected = brand;
+            };
+
+        });
+
+    });
+
+};//}}}
+
+
 // "Program" (commander module) definition.
 // ========================================
 Program
   .version(Pkg.version)
-    .arguments('<file1> <file2> [fileLabel1] [fileLabel2]')
+    .arguments('<oldFile> <newFile> [oldFileLabel] [newFileLabel]')
     .option('-o, --acceptOld <cfgOptions_list>', 'Comma-separated list of options to automatically accept old version')
     .option('-n, --acceptNew <cfgOptions_list>', 'Comma-separated list of options to automatically accept new version')
+    .option('-i, --ignoreCase', 'Perform case-insensitive comparsion')
     .description([
         'Human readable "diff" tool with no data loss.',
-        'Differenced sections are labeled with fileLabel1 and fileLabel2 if provided.',
+        'Differenced sections are labeled with oldFileLabel and newFileLabel if provided.',
         'File path is used otherwise.',
     ].join("\n\n    "))
     .on('--help', function(){
@@ -142,6 +273,15 @@ Program
             "      proper version is automatically selected (printed) and no conflict block",
             "      is rendered.",
             "",
+            "  Case insensitive comparsion:",
+            "      if --ignoreCase option (or -i) option is used, case-insensitive",
+            "      comparsion is performed. In this mode, varNames in --acceptOld and",
+            "      --acceptNew are threaten in case insensitive manner so, for example",
+            "      \"someoption\" and \"SomeOption\" property names are considered the same",
+            "      and thus selected version is picked (in its original case). In case of",
+            "      rows with no other difference than upper/lower-case letters, oldFile",
+            "      verison is used",
+            "",
         ].join(tab));
 
     })
@@ -155,21 +295,7 @@ Program.parse(process.argv);
 function main(file1, file2, file1Label, file2Label, cmd){
 
     mainRun = true; // Flag.
-
-    // Build acceptList index:
-    // -----------------------
-    var acceptList = {
-        Old: {},
-        New: {},
-    };
-    ["Old", "New"].map(function(brand){
-        (cmd["accept"+brand] || "")
-            .split(/\s*,\s*/)
-            .filter(x=>x)
-            .map(x=>acceptList[brand][x]=true)
-        ;
-    });
-    // -----------------------
+    if (cmd.ignoreCase) __options__.ignoreCase = true;
 
     const files = loadFiles([file1, file2], [file1Label, file2Label]);
 
@@ -177,49 +303,29 @@ function main(file1, file2, file1Label, file2Label, cmd){
     const tokens = tokenDiff(files[0], files[1]) // Get diff tokens.
         .concat([{}]) // Add empty token as "graceful" end-of-list mark.
     ;
+
+    // Perform --acceptOld and --acceptNew automations:
+    matchProps(cmd, tokens);
+
     let ti = 0, t = tokens[ti];
 
     for (let mi = 0; mi<master.length; mi++) {
 
         if (mi == t.ostart) {
 
-            // Perform --acceptOld and --acceptNew automations:
-            // ------------------------------------------------
-            if (
-                (t.old.length == 1)
-                && (t.new.length == 1)
-            ) {
-                let oldVar = (t.old[0].match(/^\s*(\w+)\s*=/) || [])[1];
-                let newVar = (t.new[0].match(/^\s*(\w+)\s*=/) || [])[1];
-
-                if (oldVar && oldVar == newVar) {
-                    if (acceptList.Old[oldVar]) {
-                        console.log(t.old[0]);
-                        t = tokens[++ti];
-                        continue;
-                    } else if (acceptList.New[newVar]) {
-                        console.log(t.new[0]);
-                        t = tokens[++ti];
-                        continue;
-                    };
-                };
-            };
-            // ------------------------------------------------
-
-
             // Actual differences block renderization:
             // ---------------------------------------
-            console.log (____topRuler____ + " " + files[0].label);
-            for (let oi=0; oi<t.old.length; oi++) {
-                console.log(t.old[oi]);
+            if (t.selected) {
+                sideRender(t[t.selected]);
+            } else {
+                console.log (____topRuler____ + " " + files[0].label);
+                sideRender(t.old);
+                if (t.ometa) console.log ("\\ " + t.ometa);
+                console.log (____medRuler____);
+                sideRender(t.new);
+                if (t.nmeta) console.log ("\\ " + t.nmeta);
+                console.log (____botRuler____ + " " + files[1].label);
             };
-            if (t.ometa) console.log ("\\ " + t.ometa);
-            console.log (____medRuler____);
-            for (let ni=0; ni<t.new.length; ni++) {
-                console.log(t.new[ni]);
-            };
-            if (t.nmeta) console.log ("\\ " + t.nmeta);
-            console.log (____botRuler____ + " " + files[1].label);
 
             mi += t.old.length -1; // Bypass in master but fix next loop increment.
             t = tokens[++ti];
