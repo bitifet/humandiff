@@ -95,10 +95,14 @@ Output example
       And much more data again.
 
 
+More...
+-------
+
+See [ CHANGELOG ](./CHANGELOG.txt) file.
 
 
 License
-=======
+-------
 
 [ GNU GENERAL PUBLIC LICENSE ](./LICENSE.txt)
 

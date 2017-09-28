@@ -193,7 +193,9 @@ function matchProps(cmd, tokens) {//{{{
         [ "old", "new" ],
         [ "new", "old" ],
     ]
-    .map(function([ brand, counterbrand ]){
+    .map(function(brands){ // function([ brand, counterbrand ])
+        var brand = brands[0];
+        var counterbrand = brands[1];
 
         // Check brand against counterbrand.
         acceptList[brand].map(function(propName){

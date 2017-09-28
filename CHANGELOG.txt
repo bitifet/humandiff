@@ -1,0 +1,54 @@
+
+v0.0.7 - Fixed backward compatibility issue.
+
+    Removed use of array deconstruction because node.JS versions available on
+    most current GNU/Linux distributions don't support it yet.
+
+    Added this CHANGELOG.txt file.
+
+v0.0.6 - Fixed wrong 'index' instead of 'humandiff' in readme's USAGE section.
+    
+    This was caused because this section is generated from actual binary
+    help output, but binary uses its calling name as program name which in
+    the project is 'index'(.js) and symlink generated in 'npm install -g'
+    installation is 'humandiff'.
+    
+    I renamed entry poing file (index.js) to 'humandiff.js' to avoid this to
+    happen again in the future.
+    
+    Also take the opportunity to update / improve advanced features
+    explanation.
+
+
+v0.0.5 - Smarter property name matching and case insensitive comparsion.
+    
+   * Smarter property matching: It now detects addition, removal and, in
+     some cases, when its not placed at the same position.
+   
+   * Optional case insensitive comparsion. It also affects to
+     propertyNames comparsion.
+
+
+v0.0.4 - Implemented simple configVar version pre-selection.
+
+    Fixed extra empty row added at the end.
+    
+    Fixed extra empty row added at the end because of trailing newline in
+    the last row of master file (left/old one).
+    
+    Also added warning message when files differ in having that trailing
+    newline at the end row (to avoid seeming diff error because of both
+    versions to looking the same).
+
+
+v0.0.3 - Minor changes.
+    
+    TODO: Fix extra empty row added at the end.
+
+
+v0.0.2 - Fixed copy&paste typo (wrong binary name in package.json).
+
+    (This is first that works when installed with 'npm install -g humandiff')
+
+
+v0.0.1 - Initial implementation.
