@@ -378,7 +378,13 @@ function main(file1, file2, file1Label, file2Label, cmd){
     let ti = 0, t = tokens[ti];
     let conflictDetected = false;
 
-    for (let mi = 0; mi<master.length; mi++) {
+    for (
+        var mi = 0
+        ; mi<master.length
+            || mi == t.ostart
+            // (If file2 is larger, last token starts just after file1.lengh)
+        ; mi++
+    ) {
 
         if (mi == t.ostart) {
 
@@ -410,6 +416,7 @@ function main(file1, file2, file1Label, file2Label, cmd){
     };
 
     // Detect if not all tokens were processed (Sanity check).
+    // (This row is worth its weight in gold)
     if (ti < tokens.length -1) exitError("Unprocessed tokens left!!");
 
     if (conflictDetected) process.exit(exitStatus.codes.conflict.number);

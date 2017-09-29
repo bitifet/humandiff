@@ -1,3 +1,7 @@
+v1.0.1 - Fixed last token ignoring bug.
+
+    When file2 is larger than file1 last token were ignored because it starts
+    AFTER file1 end. (FIXED)
 
 v1.0.0 - Consistent exit status behaviour.
 

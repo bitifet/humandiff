@@ -1,6 +1,6 @@
 {
   "name": "humandiff",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "\"Diff to human-readable differences file\"",
   "main": "humandiff.js",
   "bin": {
