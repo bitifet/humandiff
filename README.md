@@ -34,6 +34,28 @@ Usage
       -i, --ignoreCase                   Perform case-insensitive comparsion
       -h, --help                         output usage information
 
+
+    Exit statuses:
+       Possible return status codes are:
+
+          0: Ok
+             Compare files are identical (~diff)
+             ...OR if conflicts were automatically resolved.
+          1: Conflict
+             Files differ (~diff)
+             ...AND conflicts couldn't automatically resolved.
+                (Output file needs human review)
+          2: Binary
+             Tryed to compare binary file (=diff)
+             (RESERVED, but Not yet used)
+          5: Error
+             Some error happened.
+             (Details logged to stderr)
+
+       NOTE: Defined as close as possible to diff exit status.
+       See: http://tldp.org/LDP/abs/html/filearchiv.html#DIFFERR2
+
+
     Advanced features:
 
       Automated resolution:

@@ -1,4 +1,20 @@
 
+v1.0.0 - Consistent exit status behaviour.
+
+    0: Ok
+       Compare files are identical OR conflicts were automatically resolved.
+
+    1: Conflict
+       Files differ AND conflicts couldn't automatically resolved.
+       (Output file needs human review)
+
+    2: RESERVED, not yet used (Binary Tryed to compare binary file)
+       See: http://tldp.org/LDP/abs/html/filearchiv.html#DIFFERR2
+
+    5: Error
+       Some error happened.
+       (Details logged to stderr)
+
 v0.0.7 - Fixed backward compatibility issue.
 
     Removed use of array deconstruction because node.JS versions available on

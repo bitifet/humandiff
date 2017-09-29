@@ -12,14 +12,62 @@ const ____medRuler____ = "========";
 const ____botRuler____ = ">>>>>>>>";
 
 
-let mainRun = false;
 const __options__ = {
     ignoreCase: false, // FIXME: Make it optional (by parameter).
 };
 
+const exitStatus = { // Difine possible exit status.
+    help: [
+        "Possible return status codes are:"
+    ],
+    footNote: [
+        "NOTE: Defined as close as possible to diff exit status.",
+        "See: http://tldp.org/LDP/abs/html/filearchiv.html#DIFFERR2",
+    ],
+    // ---------------------------------------------------------------
+    codes: {
+        ok: { number: 0,
+            help: [
+                "Compare files are identical (~diff)",
+                "...OR if conflicts were automatically resolved.",
+            ],
+        },
+        conflict: { number: 1,
+            help: [
+                "Files differ (~diff)",
+                "...AND conflicts couldn't automatically resolved.",
+                "   (Output file needs human review)",
+            ],
+        },
+        binary: { number: 2,
+            help: [
+                "Tryed to compare binary file (=diff)",
+                "(RESERVED, but Not yet used)",
+            ],
+        },
+        error: { number: 5,
+            help: [
+                "Some error happened.",
+                "(Details logged to stderr)",
+            ],
+        },
+    },
+    // ---------------------------------------------------------------
+};
+
 function exitError(msg) { // Simple error message and exit helper.//{{{
     console.error("ERROR: " + msg);
-    process.exit(1);
+    process.exit(exitStatus.codes.error.number);
+};//}}}
+
+function textIndent (c, txt) { // Simple text identation helper.//{{{
+    if (typeof txt == "stirng") txt = txt.split("\n");
+    let src = [];
+    for(let i=0; i<txt.length; i++) {
+        src = src.concat(txt[i].split("\n"));
+    };
+    let tab = Array(c).join(' ');
+    return tab + src.join("\n"+tab);
 };//}}}
 
 function sideRender(sideRows) { // Simple token-side rows render helper.//{{{
@@ -264,8 +312,25 @@ Program
         'File path is used otherwise.',
     ].join("\n\n    "))
     .on('--help', function(){
-        const tab = "\n  ";
-        console.log(tab+[
+        console.log("\n"+textIndent(3, [
+            "",
+            "Exit statuses:",
+            textIndent(4, exitStatus.help),
+            "",
+            textIndent(4, Object.keys(exitStatus.codes)
+                .map(function(code){
+                    let number = exitStatus.codes[code].number;
+                    let label = code[0].toUpperCase() + code.substring(1);
+                    return textIndent(4, [
+                        number + ": " + label,
+                        textIndent(4, exitStatus.codes[code].help),
+                    ])
+                })
+            ),
+            "",
+            textIndent(4, exitStatus.footNote),
+            "",
+            "",
             "Advanced features:",
             "",
             "  Automated resolution:",
@@ -286,7 +351,7 @@ Program
             "      rows with no other difference than upper/lower-case letters, oldFile",
             "      verison is used",
             "",
-        ].join(tab));
+        ]));
 
     })
     .action(main)
@@ -298,7 +363,6 @@ Program.parse(process.argv);
 
 function main(file1, file2, file1Label, file2Label, cmd){
 
-    mainRun = true; // Flag.
     if (cmd.ignoreCase) __options__.ignoreCase = true;
 
     const files = loadFiles([file1, file2], [file1Label, file2Label]);
@@ -312,6 +376,7 @@ function main(file1, file2, file1Label, file2Label, cmd){
     matchProps(cmd, tokens);
 
     let ti = 0, t = tokens[ti];
+    let conflictDetected = false;
 
     for (let mi = 0; mi<master.length; mi++) {
 
@@ -322,6 +387,7 @@ function main(file1, file2, file1Label, file2Label, cmd){
             if (t.selected) {
                 sideRender(t[t.selected]);
             } else {
+                conflictDetected = true;
                 console.log (____topRuler____ + " " + files[0].label);
                 sideRender(t.old);
                 if (t.ometa) console.log ("\\ " + t.ometa);
@@ -346,8 +412,10 @@ function main(file1, file2, file1Label, file2Label, cmd){
     // Detect if not all tokens were processed (Sanity check).
     if (ti < tokens.length -1) exitError("Unprocessed tokens left!!");
 
+    if (conflictDetected) process.exit(exitStatus.codes.conflict.number);
+    process.exit(exitStatus.codes.ok.number);
 
 };
 
+Program.outputHelp();
 
-if (! mainRun) Program.outputHelp();
